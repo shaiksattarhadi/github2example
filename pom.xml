@@ -20,6 +20,8 @@
         <module>lib1</module>
         <module>lib2</module>
         <module>lib3</module>
+        <module>lib4</module>
+        <module>lib5</module>             
   
     </modules>
     <build>
