@@ -45,13 +45,12 @@ jobs:
       run: |
         modules=$(git diff --name-only ${{ github.event.before }} ${{ github.event.after }} | grep "pom.xml" | cut -d "/" -f1 | uniq)
         echo "::set-output name=modules::$modules"
-
     - name: Clean modules
       run: |
         for module in ${{ steps.modules.outputs.modules }}; do
           cd $module
-          mvn -B clean package -s .maven/settings.xml
+          if [ -f pom.xml ]; then
+            mvn -B clean package -s .maven/settings.xml
+          fi  
           cd ..
         done    
-
-    
