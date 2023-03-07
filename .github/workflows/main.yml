@@ -28,34 +28,20 @@ on:
     
 jobs:
   build:
+jobs:
+  diff_and_print:
     runs-on: ubuntu-latest
-     
     steps:
-    
-    - name: Checkout repository
+    - name: Checkout code
       uses: actions/checkout@v2
-    - name: Cache Depenedencies
-      uses: actions/setup-java@v2
+
+    - name: Git diff
+      run: |
+        git checkout feature
+        git diff feature..feature -- path/to/file > file_changes.txt
+
+    - name: Save changes to file
+      uses: actions/upload-artifact@v2
       with:
-        java-version: '11'
-        distribution: 'adopt'
-        cache: maven      
-    - name: Filter modules
-      id: modules
-      run: |
-        modules=$(git diff --name-only ${{ github.event.before }} ${{ github.event.after }} | grep "pom.xml" | xargs -I{} dirname {} | uniq)
-        echo "::set-output name=modules::$modules"
-
-    - name: Print diff to file
-      run: |
-        git diff --name-status ${{ github.event.before }} ${{ github.event.after }} > diff.txt
-
-    - name: Clean modules
-      run: |
-        for module in ${{ steps.modules.outputs.modules }}; do
-          if grep -q $module diff.txt && [[ -f "$module/pom.xml" ]]; then
-            cd $module
-            mvn -B clean package -s .maven/settings.xml
-            cd ..
-          fi
-        done
+        name: file_changes
+        path: file_changes.txt
