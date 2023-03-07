@@ -43,14 +43,19 @@ jobs:
     - name: Filter modules
       id: modules
       run: |
-        modules=$(git diff --name-only ${{ github.event.before }} ${{ github.event.after }} | grep "pom.xml" | cut -d "/" -f1 | uniq)
+        modules=$(git diff --name-only ${{ github.event.before }} ${{ github.event.after }} | grep "pom.xml" | xargs -I{} dirname {} | uniq)
         echo "::set-output name=modules::$modules"
+
+    - name: Print diff to file
+      run: |
+        git diff --name-status ${{ github.event.before }} ${{ github.event.after }} > diff.txt
+
     - name: Clean modules
       run: |
         for module in ${{ steps.modules.outputs.modules }}; do
-          cd $module
-          if [ -f pom.xml ]; then
+          if grep -q $module diff.txt && [[ -f "$module/pom.xml" ]]; then
+            cd $module
             mvn -B clean package -s .maven/settings.xml
-          fi  
-          cd ..
-        done    
+            cd ..
+          fi
+        done
