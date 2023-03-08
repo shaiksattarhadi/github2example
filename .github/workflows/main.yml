@@ -29,26 +29,37 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-     
+
     steps:
-    
-    - name: Checkout repository
+    - name: Checkout feature branch
       uses: actions/checkout@v2
-    - name: Cache Depenedencies
-      uses: actions/setup-java@v2
       with:
-        java-version: '11'
-        distribution: 'adopt'
-        cache: maven      
-    - name: Filter modules
-      id: modules
+        ref: feature
+
+    - name: Checkout development branch
+      uses: actions/checkout@v2
+      with:
+        ref: Development
+
+    - name: Get file diff
       run: |
-        modules=$(git diff --name-only ${{ github.event.before }} ${{ github.event.after }} | grep "pom.xml" | cut -d "/" -f1 | uniq)
-        echo "::set-output name=modules::$modules"
-    - name: Clean modules
+        git diff --name-only Development feature > file_changes.txt
+
+    - name: Filter pom.xml files
       run: |
-        for module in ${{ steps.modules.outputs.modules }}; do
-          cd $module
+        cat file_changes.txt | grep -E '^.*/pom.xml$' > pom_changes.txt
+
+    - name: Extract directories with pom.xml changes
+      run: |
+        while read -r line; do
+          dirname=$(dirname "${line}")
+          echo "$dirname" >> directories_with_pom_changes.txt
+        done < pom_changes.txt
+
+    - name: Run maven clean
+      run: |
+        while read -r line; do
+          cd "$line"
           mvn -B clean package -s .maven/settings.xml
           cd ..
-        done    
+        done < directories_with_pom_changes.txt
